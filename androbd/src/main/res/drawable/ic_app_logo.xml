@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="128dp"
+    android:height="128dp"
+    android:viewportWidth="128"
+    android:viewportHeight="128">
+
+    <!-- Background Card -->
+    <path
+        android:fillColor="#12161E"
+        android:pathData="M 24,12 L 104,12 C 110.6,12 116,17.4 116,24 L 116,104 C 116,110.6 110.6,116 104,116 L 24,116 C 17.4,116 12,110.6 12,104 L 12,24 C 12,17.4 17.4,12 24,12 Z" />
+
+    <!-- Gauge Track Arc (White/Silver) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="7"
+        android:strokeLineCap="round"
+        android:pathData="M 33.6,89.4 A 42,42 0 1,1 94.4,89.4" />
+
+    <!-- Ticks -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#B0BEC5"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M 38,85 L 42,81 M 28,64 L 34,64 M 38,43 L 42,47 M 64,28 L 64,34 M 90,43 L 86,47 M 100,64 L 94,64 M 90,85 L 86,81" />
+
+    <!-- Red Needle -->
+    <path
+        android:fillColor="#E53935"
+        android:pathData="M 61.5,66.5 L 94,34 L 66.5,61.5 C 68,64.5 64.5,68 61.5,66.5 Z" />
+
+    <!-- Center Pivot Hub -->
+    <path
+        android:fillColor="#1E232D"
+        android:pathData="M 64,64 m -10,0 a 10,10 0 1,0 20,0 a 10,10 0 1,0 -20,0" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#E53935"
+        android:strokeWidth="2.5"
+        android:pathData="M 64,64 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0" />
+
+</vector>
