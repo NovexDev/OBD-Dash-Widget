@@ -217,4 +217,13 @@
     <string name="widget_chart_trend_label">Verlauf</string>
     <string name="widget_details_gauge">%1$s | Bereich: %2$.0f - %3$.0f | Roter Bereich: %4$.0f</string>
     <string name="widget_details_chart">%1$s | Zeitraum: %2$s</string>
+
+    <string name="widget_update_frequency_title">Widget-Aktualisierungsrate</string>
+    <string name="widget_update_frequency_description">Legt fest, wie oft die Widgets auf dem Startbildschirm aktualisiert werden</string>
+    <string-array name="widget_update_frequency_entries" translatable="false">
+        <item>5 Hz (200 ms) — Extrem flüssig</item>
+        <item>3 Hz (330 ms) — Flüssig</item>
+        <item>2 Hz (500 ms) — Ausgewogen</item>
+        <item>1 Hz (1000 ms) — Energiesparmodus</item>
+    </string-array>
 </resources>

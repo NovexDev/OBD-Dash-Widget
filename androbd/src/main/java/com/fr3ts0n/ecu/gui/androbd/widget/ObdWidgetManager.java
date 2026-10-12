@@ -14,12 +14,16 @@ import com.fr3ts0n.ecu.gui.androbd.R;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Manages rendering and updating OBD widgets (Digital, Gauge, and Chart modes).
+ * Manages rendering and per-instance update frequency scheduling for OBD widgets (Digital, Gauge, and Chart modes).
  */
 public class ObdWidgetManager
 {
+    private static final Map<Integer, Long> lastRenderMap = new ConcurrentHashMap<>();
+
     /**
      * Update a single widget instance by ID.
      */
@@ -100,17 +104,30 @@ public class ObdWidgetManager
                 views.setViewVisibility(R.id.widget_digital_container, View.VISIBLE);
                 views.setViewVisibility(R.id.widget_gauge_image, View.GONE);
 
-                views.setTextViewText(R.id.widget_title, title);
+                // Choose icon based on PID mnemonic
+                int iconRes = R.drawable.ic_widget_temp;
+                String lowerMnemonic = mnemonic != null ? mnemonic.toLowerCase(Locale.ROOT) : "";
+                if (lowerMnemonic.contains("speed") || lowerMnemonic.contains("rpm"))
+                {
+                    iconRes = R.drawable.ic_widget_gauge;
+                }
+                else if (lowerMnemonic.contains("load") || lowerMnemonic.contains("trim"))
+                {
+                    iconRes = R.drawable.ic_widget_trend;
+                }
+                views.setImageViewResource(R.id.widget_digital_icon, iconRes);
+
+                views.setTextViewText(R.id.widget_title, title != null ? title.toUpperCase(Locale.ROOT) : "");
                 views.setTextViewText(R.id.widget_unit, units);
 
                 if (!isConnected)
                 {
-                    views.setTextViewText(R.id.widget_status, context.getString(R.string.widget_status_disconnected));
+                    views.setTextViewText(R.id.widget_status, "");
                     views.setTextViewText(R.id.widget_value, "--");
                 }
                 else
                 {
-                    views.setTextViewText(R.id.widget_status, context.getString(R.string.widget_status_ok));
+                    views.setTextViewText(R.id.widget_status, "");
                     if (numValue != null)
                     {
                         String formattedValue;
@@ -140,7 +157,38 @@ public class ObdWidgetManager
     }
 
     /**
-     * Update all active OBD widget instances.
+     * Update widget instances that are due based on their individual configured update frequency.
+     */
+    public static void updateDueWidgets(Context context)
+    {
+        try
+        {
+            AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
+            ComponentName componentName = new ComponentName(context, ObdWidgetProvider.class);
+            int[] appWidgetIds = appWidgetManager.getAppWidgetIds(componentName);
+
+            long nowMs = System.currentTimeMillis();
+
+            for (int appWidgetId : appWidgetIds)
+            {
+                int intervalMs = ObdWidgetPrefs.getWidgetUpdateInterval(context, appWidgetId);
+                Long lastRenderTime = lastRenderMap.get(appWidgetId);
+
+                if (lastRenderTime == null || (nowMs - lastRenderTime) >= intervalMs)
+                {
+                    lastRenderMap.put(appWidgetId, nowMs);
+                    updateWidget(context, appWidgetManager, appWidgetId);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            // Catch any IPC exceptions safely
+        }
+    }
+
+    /**
+     * Update all active OBD widget instances immediately.
      */
     public static void updateAllWidgets(Context context)
     {
@@ -152,6 +200,7 @@ public class ObdWidgetManager
 
             for (int appWidgetId : appWidgetIds)
             {
+                lastRenderMap.put(appWidgetId, System.currentTimeMillis());
                 updateWidget(context, appWidgetManager, appWidgetId);
             }
         }

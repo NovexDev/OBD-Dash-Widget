@@ -51,6 +51,21 @@
             android:text="@string/widget_type_chart_option" />
     </RadioGroup>
 
+    <!-- Update Frequency Selection -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/widget_update_frequency_title"
+        android:textAppearance="?attr/textAppearanceTitleSmall"
+        android:textStyle="bold" />
+
+    <Spinner
+        android:id="@+id/spinner_update_rate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp" />
+
     <!-- Analog Gauge Specific Configuration Fields -->
     <LinearLayout
         android:id="@+id/layout_gauge_options"

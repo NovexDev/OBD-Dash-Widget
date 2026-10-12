@@ -4,8 +4,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 /**
- * SharedPreferences helper to manage AppWidget configurations
- * (e.g. appWidgetId -> PID Mnemonic, Widget Type, Min/Max/Redline limits, Chart Time Window).
+ * SharedPreferences helper to manage AppWidget configurations per widget instance
+ * (e.g. appWidgetId -> PID Mnemonic, Widget Type, Min/Max/Redline limits, Chart Time Window, Update Frequency).
  */
 public class ObdWidgetPrefs
 {
@@ -17,12 +17,13 @@ public class ObdWidgetPrefs
     private static final String KEY_MAX = "appwidget_max_";
     private static final String KEY_REDLINE = "appwidget_redline_";
     private static final String KEY_TIME_WINDOW = "appwidget_timewindow_";
+    private static final String KEY_UPDATE_INTERVAL = "appwidget_update_interval_";
 
     public static final String TYPE_DIGITAL = "DIGITAL";
     public static final String TYPE_GAUGE = "GAUGE";
     public static final String TYPE_CHART = "CHART";
 
-    public static void saveWidgetConfig(Context context, int appWidgetId, String mnemonic, String type, float minVal, float maxVal, float redlineVal, int timeWindowSeconds)
+    public static void saveWidgetConfig(Context context, int appWidgetId, String mnemonic, String type, float minVal, float maxVal, float redlineVal, int timeWindowSeconds, int updateIntervalMs)
     {
         SharedPreferences.Editor prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit();
         prefs.putString(KEY_PID + appWidgetId, mnemonic);
@@ -31,6 +32,7 @@ public class ObdWidgetPrefs
         prefs.putFloat(KEY_MAX + appWidgetId, maxVal);
         prefs.putFloat(KEY_REDLINE + appWidgetId, redlineVal);
         prefs.putInt(KEY_TIME_WINDOW + appWidgetId, timeWindowSeconds);
+        prefs.putInt(KEY_UPDATE_INTERVAL + appWidgetId, updateIntervalMs);
         prefs.apply();
     }
 
@@ -70,6 +72,12 @@ public class ObdWidgetPrefs
         return prefs.getInt(KEY_TIME_WINDOW + appWidgetId, 60);
     }
 
+    public static int getWidgetUpdateInterval(Context context, int appWidgetId)
+    {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return prefs.getInt(KEY_UPDATE_INTERVAL + appWidgetId, 200); // Default 200 ms (5 Hz)
+    }
+
     public static void deleteWidgetConfig(Context context, int appWidgetId)
     {
         SharedPreferences.Editor prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit();
@@ -79,6 +87,7 @@ public class ObdWidgetPrefs
         prefs.remove(KEY_MAX + appWidgetId);
         prefs.remove(KEY_REDLINE + appWidgetId);
         prefs.remove(KEY_TIME_WINDOW + appWidgetId);
+        prefs.remove(KEY_UPDATE_INTERVAL + appWidgetId);
         prefs.apply();
     }
 }

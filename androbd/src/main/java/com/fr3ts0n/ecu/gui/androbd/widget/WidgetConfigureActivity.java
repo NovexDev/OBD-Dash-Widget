@@ -50,6 +50,7 @@ public class WidgetConfigureActivity extends AppCompatActivity
     private EditText etMaxVal;
     private EditText etRedlineVal;
     private Spinner spinnerTimeWindow;
+    private Spinner spinnerUpdateRate;
     private EditText etSearchPid;
     private Button btnSave;
 
@@ -64,6 +65,14 @@ public class WidgetConfigureActivity extends AppCompatActivity
             "120 Sek. (2 Minuten)",
             "300 Sek. (5 Minuten)",
             "600 Sek. (10 Minuten)"
+    };
+
+    private static final int[] UPDATE_RATE_VALUES = {1000, 200, 100, 50};
+    private static final String[] UPDATE_RATE_LABELS = {
+            "1 Hz (1000 ms) — Energiesparmodus",
+            "5 Hz (200 ms) — Extrem flüssig",
+            "10 Hz (100 ms) — Ultra Reaktionsschnell",
+            "20 Hz (50 ms) — Maximale Frequenz"
     };
 
     @Override
@@ -102,6 +111,7 @@ public class WidgetConfigureActivity extends AppCompatActivity
         etMaxVal = findViewById(R.id.et_max_val);
         etRedlineVal = findViewById(R.id.et_redline_val);
         spinnerTimeWindow = findViewById(R.id.spinner_time_window);
+        spinnerUpdateRate = findViewById(R.id.spinner_update_rate);
         etSearchPid = findViewById(R.id.et_search_pid);
         btnSave = findViewById(R.id.btn_save_widget_config);
 
@@ -109,6 +119,11 @@ public class WidgetConfigureActivity extends AppCompatActivity
         ArrayAdapter<String> timeAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, TIME_WINDOW_LABELS);
         timeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerTimeWindow.setAdapter(timeAdapter);
+
+        // Populate Update Rate Spinner
+        ArrayAdapter<String> rateAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, UPDATE_RATE_LABELS);
+        rateAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerUpdateRate.setAdapter(rateAdapter);
 
         rgType.setOnCheckedChangeListener((group, checkedId) -> {
             if (checkedId == R.id.rb_type_gauge)
@@ -135,6 +150,7 @@ public class WidgetConfigureActivity extends AppCompatActivity
         float currentMax = ObdWidgetPrefs.getWidgetMax(this, appWidgetId);
         float currentRedline = ObdWidgetPrefs.getWidgetRedline(this, appWidgetId);
         int currentTimeWindow = ObdWidgetPrefs.getWidgetTimeWindow(this, appWidgetId);
+        int currentUpdateRate = ObdWidgetPrefs.getWidgetUpdateInterval(this, appWidgetId);
 
         if (ObdWidgetPrefs.TYPE_GAUGE.equals(currentType))
         {
@@ -159,12 +175,22 @@ public class WidgetConfigureActivity extends AppCompatActivity
         etMaxVal.setText(String.format(Locale.getDefault(), "%.0f", currentMax));
         etRedlineVal.setText(String.format(Locale.getDefault(), "%.0f", currentRedline));
 
-        // Set Spinner selection
+        // Set Time Window Spinner selection
         for (int i = 0; i < TIME_WINDOW_VALUES.length; i++)
         {
             if (TIME_WINDOW_VALUES[i] == currentTimeWindow)
             {
                 spinnerTimeWindow.setSelection(i);
+                break;
+            }
+        }
+
+        // Set Update Rate Spinner selection
+        for (int i = 0; i < UPDATE_RATE_VALUES.length; i++)
+        {
+            if (UPDATE_RATE_VALUES[i] == currentUpdateRate)
+            {
+                spinnerUpdateRate.setSelection(i);
                 break;
             }
         }
@@ -330,6 +356,11 @@ public class WidgetConfigureActivity extends AppCompatActivity
                 ? TIME_WINDOW_VALUES[timeWindowIdx]
                 : 60;
 
+        int updateRateIdx = spinnerUpdateRate.getSelectedItemPosition();
+        int updateIntervalMs = (updateRateIdx >= 0 && updateRateIdx < UPDATE_RATE_VALUES.length)
+                ? UPDATE_RATE_VALUES[updateRateIdx]
+                : 200;
+
         // Save configuration
         ObdWidgetPrefs.saveWidgetConfig(
                 this,
@@ -339,7 +370,8 @@ public class WidgetConfigureActivity extends AppCompatActivity
                 minVal,
                 maxVal,
                 redlineVal,
-                timeWindowSeconds
+                timeWindowSeconds,
+                updateIntervalMs
         );
 
         // Update widget

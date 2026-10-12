@@ -265,15 +265,29 @@ public class ObdForegroundService extends Service
             {
                 if (!isRunning) return;
 
-                // Update widgets with current PID data
-                ObdWidgetManager.updateAllWidgets(ObdForegroundService.this);
+                // Update widget instances whose individual frequency is due
+                ObdWidgetManager.updateDueWidgets(ObdForegroundService.this);
 
-                // Schedule next update every 330 ms (~3 Hz live updates)
-                handler.postDelayed(this, 330);
+                // Tick base scheduling loop every 50 ms (20 Hz resolution)
+                handler.postDelayed(this, 50);
             }
         };
 
         handler.post(updateRunnable);
+    }
+
+    private long getUpdateIntervalMs()
+    {
+        try
+        {
+            android.content.SharedPreferences prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this);
+            String val = prefs.getString("widget_update_frequency", "200");
+            return Long.parseLong(val);
+        }
+        catch (Exception e)
+        {
+            return 200L;
+        }
     }
 
     @Override

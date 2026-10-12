@@ -28,8 +28,6 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-
-import com.fr3ts0n.androbd.plugin.mgr.PluginManager;
 import com.fr3ts0n.ecu.Conversion;
 import com.fr3ts0n.ecu.EcuDataItem;
 import com.fr3ts0n.ecu.EcuDataPv;
@@ -278,14 +276,6 @@ class ObdItemAdapter extends ArrayAdapter<Object>
 
                     }
                 }
-
-                // send update to plugin handler
-                if (PluginManager.pluginHandler != null)
-                {
-                    PluginManager.pluginHandler.sendDataUpdate(
-                            pv.get(EcuDataPv.FID_MNEMONIC).toString(),
-                            event.getValue().toString());
-                }
             }
         }
     };
@@ -295,7 +285,6 @@ class ObdItemAdapter extends ArrayAdapter<Object>
      */
     protected synchronized void addAllDataSeries()
     {
-        StringBuilder pluginStr = new StringBuilder();
         for (int pos = 0; pos < getCount(); pos++)
         {
             IndexedProcessVar pv = (IndexedProcessVar)getItem(pos);
@@ -306,20 +295,6 @@ class ObdItemAdapter extends ArrayAdapter<Object>
                 pv.put(FID_DATA_SERIES, series);
                 pv.addPvChangeListener(dataChangeHandler, PvChangeEvent.PV_MODIFIED);
             }
-
-            // assemble data items for plugin notification
-            pluginStr.append(String.format("%s;%s;%s;%s\n",
-                                           pv.get(EcuDataPv.FID_MNEMONIC),
-                                           pv.get(EcuDataPv.FID_DESCRIPT),
-                                           String.valueOf(pv.get(EcuDataPv.FID_VALUE)),
-                                           pv.get(EcuDataPv.FID_UNITS)
-            ));
-        }
-
-        // notify plugins
-        if (PluginManager.pluginHandler != null)
-        {
-            PluginManager.pluginHandler.sendDataList(pluginStr.toString());
         }
     }
 

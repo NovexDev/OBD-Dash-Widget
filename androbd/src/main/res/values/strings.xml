@@ -407,4 +407,19 @@ period of time while the ECU recalibrates itself.
     <string name="widget_chart_trend_label">Trend</string>
     <string name="widget_details_gauge">%1$s | Range: %2$.0f - %3$.0f | Redline: %4$.0f</string>
     <string name="widget_details_chart">%1$s | Timeframe: %2$s</string>
+
+    <string name="widget_update_frequency_title">Widget Update Frequency</string>
+    <string name="widget_update_frequency_description">Controls how frequently live widgets refresh on the homescreen</string>
+    <string-array name="widget_update_frequency_entries" translatable="false">
+        <item>5 Hz (200 ms) — Ultra Smooth</item>
+        <item>3 Hz (330 ms) — Smooth</item>
+        <item>2 Hz (500 ms) — Balanced</item>
+        <item>1 Hz (1000 ms) — Battery Saver</item>
+    </string-array>
+    <string-array name="widget_update_frequency_values" translatable="false">
+        <item>200</item>
+        <item>330</item>
+        <item>500</item>
+        <item>1000</item>
+    </string-array>
 </resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="20dp"
+    android:height="20dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Speedometer / Gauge Icon -->
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M12,15 a2.5,2.5 0 1,1 0.001,-0.001 M12,12.5 L16.5,8 M12,3 A9,9 0 0,0 3,12 A9,9 0 0,0 21,12 A9,9 0 0,0 12,3 Z M12,5 A7,7 0 0,1 19,12 A7,7 0 0,1 5,12 A7,7 0 0,1 12,5 Z" />
+</vector>

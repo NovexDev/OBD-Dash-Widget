@@ -67,6 +67,7 @@ import java.util.List;
 import java.util.Locale;
 
 import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -78,9 +79,6 @@ import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.Button;
-
-import com.fr3ts0n.androbd.plugin.Plugin;
-import com.fr3ts0n.androbd.plugin.mgr.PluginManager;
 import com.fr3ts0n.ecu.EcuCodeItem;
 import com.fr3ts0n.ecu.EcuDataItem;
 import com.fr3ts0n.ecu.EcuDataItems;
@@ -119,9 +117,9 @@ import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
 /**
- * Main Activity for AndrOBD app
+ * Main Activity for OBD Dash Widget app
  */
-public class MainActivity extends PluginManager
+public class MainActivity extends AppCompatActivity
         implements PvChangeListener,
         AdapterView.OnItemLongClickListener,
         PropertyChangeListener,
@@ -145,17 +143,6 @@ public class MainActivity extends PluginManager
     public static final int MESSAGE_TOAST = 5;
     public static final int MESSAGE_UPDATE_VIEW = 7;
     public static final int MESSAGE_TOOLBAR_VISIBLE = 12;
-    /**
-     * Mapping list from Plugin.CsvField to EcuDataPv.key
-     */
-    static final Object[] csvFidMap =
-    {
-        EcuDataPv.FID_MNEMONIC,
-        EcuDataPv.FIELDS[EcuDataPv.FID_DESCRIPT],
-        EcuDataPv.FID_MIN,
-        EcuDataPv.FID_MAX,
-        EcuDataPv.FIELDS[EcuDataPv.FID_UNITS]
-    };
     private static final String DEVICE_ADDRESS = "device_address";
     private static final String DEVICE_PORT = "device_port";
     private static final String MEASURE_SYSTEM = "measure_system";
@@ -212,10 +199,6 @@ public class MainActivity extends PluginManager
      */
     private static final Set<String> emptyStringSet = new HashSet<>();
     /**
-     * Container for Plugin-provided data
-     */
-    public static PvList mPluginPvs = new PvList();
-    /**
      * app preferences ...
      */
     static SharedPreferences prefs;
@@ -242,8 +225,36 @@ public class MainActivity extends PluginManager
     private static VidItemAdapter mVidAdapter;
     private static TidItemAdapter mTidAdapter;
     private static DfcItemAdapter mDfcAdapter;
-    private static PluginDataAdapter mPluginDataAdapter;
     private static ObdItemAdapter currDataAdapter;
+    private ListView mListViewWidget;
+    private BaseAdapter mCurrentAdapter;
+
+    public ListView getListView()
+    {
+        if (mListViewWidget == null)
+        {
+            mListViewWidget = findViewById(R.id.widget_manager_list);
+            if (mListViewWidget == null)
+            {
+                mListViewWidget = findViewById(android.R.id.list);
+            }
+        }
+        return mListViewWidget;
+    }
+
+    public BaseAdapter getListAdapter()
+    {
+        return mCurrentAdapter;
+    }
+
+    public void setListAdapter(BaseAdapter adapter)
+    {
+        mCurrentAdapter = adapter;
+        if (getListView() != null)
+        {
+            getListView().setAdapter(adapter);
+        }
+    }
     /**
      * initial state of bluetooth adapter
      */
@@ -402,8 +413,6 @@ public class MainActivity extends PluginManager
                                 {
                                     if (event.getSource() == ObdProt.PidPvs)
                                     {
-                                        // append plugin measurements to data list
-                                        currDataAdapter.addAll(mPluginPvs.values());
                                         // Check if last data selection shall be restored
                                         checkToRestoreLastDataSelection();
                                         checkToRestoreLastViewMode();
@@ -586,7 +595,6 @@ public class MainActivity extends PluginManager
         mVidAdapter = new VidItemAdapter(this, R.layout.obd_item, ObdProt.VidPvs);
         mTidAdapter = new TidItemAdapter(this, R.layout.obd_item, ObdProt.VidPvs);
         mDfcAdapter = new DfcItemAdapter(this, R.layout.obd_item, ObdProt.tCodes);
-        mPluginDataAdapter = new PluginDataAdapter(this, R.layout.obd_item, mPluginPvs);
         currDataAdapter = mPidAdapter;
 
         // get list view
@@ -1035,38 +1043,34 @@ public class MainActivity extends PluginManager
     @SuppressLint("GestureBackNavigation")
     public void onBackPressed()
     {
-        if (getListAdapter() == pluginHandler)
+        if (CommService.elm.getService() != ObdProt.OBD_SVC_NONE)
         {
-            setObdService(obdService, null);
-        } else
+            // revert to start view
+            setObdService(ObdProt.OBD_SVC_NONE, null);
+            // If we return from NON list view (i.e. FILTERED)
+            if (dataViewMode != DATA_VIEW_MODE.LIST)
+            {
+                // revert to list view
+                setDataViewMode(DATA_VIEW_MODE.LIST);
+                setObdService(ObdProt.OBD_SVC_DATA, null);
+            }
+        }
+        else
         {
-            if (CommService.elm.getService() != ObdProt.OBD_SVC_NONE)
+            if (lastBackPressTime < System.currentTimeMillis() - EXIT_TIMEOUT)
             {
-                // revert to start view
-                setObdService(ObdProt.OBD_SVC_NONE, null);
-                // If we return from NON list view (i.e. FILTERED)
-                if (dataViewMode != DATA_VIEW_MODE.LIST)
-                {
-                    // revert to list view
-                    setDataViewMode(DATA_VIEW_MODE.LIST);
-                    setObdService(ObdProt.OBD_SVC_DATA, null);
-                }
-            } else
+                exitToast =
+                        Toast.makeText(this, R.string.back_again_to_exit, Toast.LENGTH_SHORT);
+                exitToast.show();
+                lastBackPressTime = System.currentTimeMillis();
+            }
+            else
             {
-                if (lastBackPressTime < System.currentTimeMillis() - EXIT_TIMEOUT)
+                if (exitToast != null)
                 {
-                    exitToast =
-                            Toast.makeText(this, R.string.back_again_to_exit, Toast.LENGTH_SHORT);
-                    exitToast.show();
-                    lastBackPressTime = System.currentTimeMillis();
-                } else
-                {
-                    if (exitToast != null)
-                    {
-                        exitToast.cancel();
-                    }
-                    super.onBackPressed();
+                    exitToast.cancel();
                 }
+                super.onBackPressed();
             }
         }
     }
@@ -1156,7 +1160,6 @@ public class MainActivity extends PluginManager
             }
 
             if(id == R.id.plugin_manager) {
-                setManagerView();
                 return true;
             }
 
@@ -2088,10 +2091,6 @@ public class MainActivity extends PluginManager
                 PvChangeEvent.PV_ADDED
                         | PvChangeEvent.PV_CLEARED
         );
-        mPluginPvs.addPvChangeListener(this,
-                PvChangeEvent.PV_ADDED
-                        | PvChangeEvent.PV_CLEARED
-        );
     }
 
     /**
@@ -2103,7 +2102,6 @@ public class MainActivity extends PluginManager
         ObdProt.PidPvs.removePvChangeListener(this);
         ObdProt.VidPvs.removePvChangeListener(this);
         ObdProt.tCodes.removePvChangeListener(this);
-        mPluginPvs.removePvChangeListener(this);
     }
 
     /**
@@ -2646,16 +2644,11 @@ public class MainActivity extends PluginManager
 
             /* Return to original PV list */
             if (currDataAdapter == mPidAdapter)
-            {
                 currDataAdapter.setPvList(ObdProt.PidPvs);
-                // append plugin measurements to data list
-                currDataAdapter.addAll(mPluginPvs.values());
-            } else if (currDataAdapter == mVidAdapter)
+            else if (currDataAdapter == mVidAdapter)
                 currDataAdapter.setPvList(ObdProt.VidPvs);
             else if (currDataAdapter == mDfcAdapter)
                 currDataAdapter.setPvList(ObdProt.tCodes);
-            else if (currDataAdapter == mPluginDataAdapter)
-                currDataAdapter.setPvList(mPluginPvs);
 
         }
     }
@@ -2885,68 +2878,6 @@ public class MainActivity extends PluginManager
             {
                 prefs.edit().putString(PRESELECT.LAST_VIEW_MODE.toString(), dataViewMode.toString())
                         .apply();
-            }
-        }
-    }
-
-    @Override
-    public void onDataListUpdate(String csvString)
-    {
-        log.log(Level.FINE, "PluginDataList: " + csvString);
-        // append unknown items to list of known items
-        synchronized (mPluginPvs)
-        {
-            for (String csvLine : csvString.split("\n"))
-            {
-                String[] fields = csvLine.split(";");
-                if (fields.length >= Plugin.CsvField.values().length)
-                {
-                    // check if PV already is known ...
-                    PluginDataPv pv = (PluginDataPv) mPluginPvs.get(fields[Plugin.CsvField.MNEMONIC.ordinal()]);
-                    // if not, create a new one
-                    if (pv == null)
-                    {
-                        pv = new PluginDataPv();
-                    }
-                    // fill field content
-                    for (Plugin.CsvField fld : Plugin.CsvField.values())
-                    {
-                        try
-                        {
-                            // if content is numeric, set numeric value
-                            Double value = Double.valueOf(fields[fld.ordinal()]);
-                            pv.put(csvFidMap[fld.ordinal()], value);
-                        } catch (Exception ex)
-                        {
-                            pv.put(csvFidMap[fld.ordinal()], fields[fld.ordinal()]);
-                        }
-                    }
-                    // add/update into pv list
-                    mPluginPvs.put(pv.getKeyValue(), pv);
-                }
-            }
-        }
-    }
-
-    @Override
-    public void onDataUpdate(String key, String value)
-    {
-        log.log(Level.FINE, "PluginData: " + key + "=" + value);
-        // Update value of plugin data item
-        synchronized (mPluginPvs)
-        {
-            ProcessVar pv = (ProcessVar) mPluginPvs.get(key);
-            if (pv != null)
-            {
-                try
-                {
-                    // if content is numeric, set numeric value
-                    Double numVal = Double.valueOf(value);
-                    pv.put(EcuDataPv.FIELDS[EcuDataPv.FID_VALUE], numVal);
-                } catch (Exception ex)
-                {
-                    pv.put(EcuDataPv.FIELDS[EcuDataPv.FID_VALUE], value);
-                }
             }
         }
     }
