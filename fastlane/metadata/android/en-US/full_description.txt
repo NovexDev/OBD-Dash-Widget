@@ -1,46 +1,12 @@
-Use your phone/tablet to connect to your car's on-board diagnostics system via
-any ELM327 bluetooth adapter.
+OBD Dash Widget brings live, customizable OBD-II gauge widgets directly to your Android homescreen.
 
-OBD connections
----------------
-* Bluetooth
-* USB
-* Wifi
+Connect your Android device to your vehicle's OBD-II port via any ELM327-compatible Bluetooth, BLE, USB, or Wi-Fi adapter, and monitor real-time vehicle parameters (RPM, Speed, Coolant Temperature, Engine Load, Fuel Level, and more) right from your launcher.
 
-OBD Features
-------------
-* Read fault codes
-* Clear fault codes
-* Read/record live data
-* Read freeze frame data
-* Read vehicle info data
+Features:
+* Homescreen Launcher Widgets: Analog Gauge (Speedometer-style with redline arc and red needle), Digital Number, and Live Trend Chart.
+* Live Background Service: 3 Hz smooth widget updating in background.
+* ECU Safety: Read-only protection on communication layer (no ECU write or fault clearing commands).
+* Multi-Language Support: English, German, Spanish, French, Italian, Russian, Portuguese, Dutch, and more.
+* Built-in Demo Mode: Test widgets without an adapter.
 
-Additional features
--------------------
-* Day/Night view
-* Data charts
-* Dashboard
-* Head up display
-* Save recorded data
-* Load recorded data (for analysis)
-* CSV export
-
-Customisation of PID data
--------------------------
-* PID data items
-* Data conversions
-
-Plugin extension support
-------------------------
-* Avalilable Plugins:
-  * MqttPublisher - Publish OBD readings to MQTT broker for home automation
-  * GpsProvider - Provide GPS data to AndrOBD
-  * SensorProvider - Provide Accelerometer sensor data to AndrOBD
-
-Native language support
------------------------
-* translatable via weblate.org
-  * Program dialogs
-  * Data item descriptions
-  * Fault code descriptions
-.
+Note: Based on the open-source project AndrOBD by fr3ts0n. Refactored and modernized with AI assistance.

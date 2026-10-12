@@ -1,1 +1,1 @@
-Connect to your car's OBD system
+Live OBD-II Gauge Widgets for your Android Homescreen

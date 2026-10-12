@@ -29,6 +29,19 @@ public class ObdChartRenderer
         Bitmap bitmap = Bitmap.createBitmap(BITMAP_SIZE, BITMAP_SIZE, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
 
+        float cx = BITMAP_SIZE / 2f;
+
+        // Background Card Fill & Border
+        Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        bgPaint.setColor(Color.parseColor("#12161E"));
+        canvas.drawRoundRect(2f, 2f, BITMAP_SIZE - 2f, BITMAP_SIZE - 2f, 16f, 16f, bgPaint);
+
+        Paint bezelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        bezelPaint.setStyle(Paint.Style.STROKE);
+        bezelPaint.setStrokeWidth(2f);
+        bezelPaint.setColor(Color.parseColor("#2A313E"));
+        canvas.drawRoundRect(2f, 2f, BITMAP_SIZE - 2f, BITMAP_SIZE - 2f, 16f, 16f, bezelPaint);
+
         Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setTextAlign(Paint.Align.CENTER);
 
@@ -39,33 +52,18 @@ public class ObdChartRenderer
         Paint linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         linePaint.setStyle(Paint.Style.STROKE);
         linePaint.setStrokeWidth(2.5f);
-        linePaint.setColor(isConnected ? Color.parseColor("#00E5FF") : Color.parseColor("#78909C"));
+        linePaint.setColor(isConnected ? Color.parseColor("#00E5FF") : Color.parseColor("#64748B"));
 
         Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         fillPaint.setStyle(Paint.Style.FILL);
 
         // Chart Bounds
-        float paddingLeft = 12f;
-        float paddingRight = 12f;
-        float chartTop = 26f;
-        float chartBottom = 115f;
+        float paddingLeft = 14f;
+        float paddingRight = 14f;
+        float chartTop = 18f;
+        float chartBottom = 100f;
         float chartWidth = BITMAP_SIZE - paddingLeft - paddingRight;
         float chartHeight = chartBottom - chartTop;
-
-        // Draw Title (Top)
-        textPaint.setTextSize(10f);
-        textPaint.setColor(Color.parseColor("#B0BEC5"));
-        textPaint.setFakeBoldText(true);
-        if (title != null)
-        {
-            float maxTitleWidth = BITMAP_SIZE - 20f;
-            float measuredWidth = textPaint.measureText(title);
-            if (measuredWidth > maxTitleWidth)
-            {
-                textPaint.setTextSize(10f * (maxTitleWidth / measuredWidth));
-            }
-            canvas.drawText(title.toUpperCase(Locale.ROOT), BITMAP_SIZE / 2f, 16f, textPaint);
-        }
 
         // Draw Grid Lines
         canvas.drawLine(paddingLeft, chartTop, paddingLeft + chartWidth, chartTop, gridPaint);
@@ -163,21 +161,21 @@ public class ObdChartRenderer
             // Draw Latest Point Dot
             Paint dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             dotPaint.setColor(Color.parseColor("#00E5FF"));
-            canvas.drawCircle(lastX, lastY, 4f, dotPaint);
+            canvas.drawCircle(lastX, lastY, 3.5f, dotPaint);
         }
 
-        // Draw Bottom Readout
+        // Draw Value / Disconnected Text
         textPaint.setTextAlign(Paint.Align.CENTER);
         if (!isConnected)
         {
-            textPaint.setTextSize(14f);
-            textPaint.setColor(Color.parseColor("#FF5252"));
+            textPaint.setTextSize(11f);
+            textPaint.setColor(Color.parseColor("#E53935"));
             textPaint.setFakeBoldText(true);
-            canvas.drawText("Disconnected", BITMAP_SIZE / 2f, 145f, textPaint);
+            canvas.drawText("Disconnected", cx, 128f, textPaint);
         }
         else if (currentVal != null)
         {
-            textPaint.setTextSize(22f);
+            textPaint.setTextSize(18f);
             textPaint.setColor(Color.WHITE);
             textPaint.setFakeBoldText(true);
 
@@ -191,22 +189,39 @@ public class ObdChartRenderer
                 formattedVal = String.format(Locale.getDefault(), "%.1f", currentVal);
             }
 
-            canvas.drawText(formattedVal, BITMAP_SIZE / 2f, 142f, textPaint);
+            canvas.drawText(formattedVal, cx, 125f, textPaint);
 
             // Unit and Time Window Label
             String windowLabel = timeWindowSeconds >= 60 ? (timeWindowSeconds / 60) + "m" : timeWindowSeconds + "s";
-            String subText = String.format("%s (%s Verlauf)", unit != null ? unit : "", windowLabel).trim();
+            String subText = String.format("%s (%s)", unit != null ? unit : "", windowLabel).trim();
 
             textPaint.setTextSize(9f);
-            textPaint.setColor(Color.parseColor("#80CBC4"));
+            textPaint.setColor(Color.parseColor("#94A3B8"));
             textPaint.setFakeBoldText(false);
-            canvas.drawText(subText, BITMAP_SIZE / 2f, 162f, textPaint);
+            canvas.drawText(subText, cx, 142f, textPaint);
         }
         else
         {
-            textPaint.setTextSize(18f);
-            textPaint.setColor(Color.parseColor("#78909C"));
-            canvas.drawText("--", BITMAP_SIZE / 2f, 145f, textPaint);
+            textPaint.setTextSize(16f);
+            textPaint.setColor(Color.parseColor("#64748B"));
+            canvas.drawText("--", cx, 128f, textPaint);
+        }
+
+        // Draw Title Below Chart
+        if (title != null && !title.isEmpty())
+        {
+            textPaint.setTextSize(10f);
+            textPaint.setColor(Color.parseColor("#CBD5E1"));
+            textPaint.setFakeBoldText(false);
+
+            float maxTitleWidth = BITMAP_SIZE - 16f;
+            float currentWidth = textPaint.measureText(title);
+            if (currentWidth > maxTitleWidth)
+            {
+                textPaint.setTextSize(Math.max(6f, 10f * (maxTitleWidth / currentWidth)));
+            }
+
+            canvas.drawText(title, cx, BITMAP_SIZE - 6f, textPaint);
         }
 
         return bitmap;

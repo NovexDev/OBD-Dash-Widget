@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Gauge Track Arc (White/Silver) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M 28,76 A 36,36 0 1,1 80,76" />
+
+    <!-- Scale Ticks -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#CBD5E1"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M 32,72 L 36,68 M 23,54 L 28,54 M 32,36 L 36,40 M 54,23 L 54,28 M 76,36 L 72,40 M 85,54 L 80,54 M 76,72 L 72,68" />
+
+    <!-- Red Needle -->
+    <path
+        android:fillColor="#E53935"
+        android:pathData="M 51.5,56.5 L 80,28 L 56.5,51.5 C 58,54.5 54.5,58 51.5,56.5 Z" />
+
+    <!-- Center Hub -->
+    <path
+        android:fillColor="#1E232D"
+        android:pathData="M 54,54 m -9,0 a 9,9 0 1,0 18,0 a 9,9 0 1,0 -18,0" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#E53935"
+        android:strokeWidth="2"
+        android:pathData="M 54,54 m -5,0 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0" />
+
+</vector>
