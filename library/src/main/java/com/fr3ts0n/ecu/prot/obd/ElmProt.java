@@ -1144,6 +1144,7 @@ public class ElmProt
 				// test case for issue AndrOBD/#61
 				handleTelegram("+CONNECTING<<94:65:2D:9E:DF:B5".toCharArray());
 				
+				this.status = STAT.UNDEFINED;
 				setStatus(STAT.ECU_DETECT);
 				handleTelegram("SEARCHING...".toCharArray());
 				handleTelegram("7EA074100000000".toCharArray());
@@ -1156,8 +1157,22 @@ public class ElmProt
 				handleTelegram("18DAF110064100BE3EB811".toCharArray());
 				setStatus(STAT.ECU_DETECTED);
 				
+				// Simulate supported PIDs for Demo mode
+				handleTelegram("4100FFFFFFFF".toCharArray());
+				handleTelegram("4120FFFFFFFF".toCharArray());
+
+				if (service == OBD_SVC_NONE)
+				{
+					service = OBD_SVC_DATA;
+				}
+
 				while (runDemo)
 				{
+					if (service == OBD_SVC_NONE)
+					{
+						service = OBD_SVC_DATA;
+					}
+
 					switch (service)
 					{
 						// read any kinds of trouble codes
@@ -1190,33 +1205,44 @@ public class ElmProt
 						// otherwise send data ...
 						case OBD_SVC_DATA:
 						case OBD_SVC_FREEZEFRAME:
-							pid = getNextSupportedPid();
-							if (pid != 0)
+							// Send live simulated values for key OBD PIDs
+							long timeInCycle = System.currentTimeMillis() % 20000;
+
+							// 1. Engine RPM (0x0C): 10s ramp 1000->6000, 10s ramp 6000->1000
+							double rpm;
+							if (timeInCycle < 10000)
 							{
-								value++;
-								value &= 0xFF;
-								// format new data message and handle it as new reception
-								handleTelegram(String.format(
-									service == OBD_SVC_DATA ? "4%X%02X%02X%02X%02X%02X"
-									                        : "4%X%02X00%02X%02X%02X%02X",
-									service, pid, value, value, value, value).toCharArray());
+								rpm = 1000.0 + (timeInCycle / 10000.0) * 5000.0;
 							}
 							else
 							{
-								// simulate "ALL PIDs supported"
-								int i;
-								for (i = 0; i < 0xE0; i += 0x20)
-								{
-									handleTelegram(String.format(
-										service == OBD_SVC_DATA ? "4%X%02XFFFFFFFF"
-										                        : "4%X%02X00FFFFFFFF", service, i)
-										               .toCharArray());
-								}
-								handleTelegram(String.format(
-									service == OBD_SVC_DATA ? "4%X%02XFFFFFFFE"
-									                        : "4%X%02X00FFFFFFFE", service, i)
-									               .toCharArray());
+								rpm = 6000.0 - ((timeInCycle - 10000) / 10000.0) * 5000.0;
 							}
+							int rawRpm = (int)(rpm * 4.0);
+							int byteA = (rawRpm >> 8) & 0xFF;
+							int byteB = rawRpm & 0xFF;
+							handleTelegram(String.format("410C%02X%02X", byteA, byteB).toCharArray());
+
+							// 2. Vehicle Speed (0x0D): 0->120 km/h
+							double speed;
+							if (timeInCycle < 10000)
+							{
+								speed = (timeInCycle / 10000.0) * 120.0;
+							}
+							else
+							{
+								speed = 120.0 - ((timeInCycle - 10000) / 10000.0) * 120.0;
+							}
+							handleTelegram(String.format("410D%02X", (int)speed).toCharArray());
+
+							// 3. Coolant Temp (0x05): 85 deg C (raw 125 = 0x7D)
+							handleTelegram("41057D".toCharArray());
+
+							// 4. Calculated Engine Load (0x04)
+							int loadRaw = (int) ((rpm / 8000.0) * 255.0);
+							handleTelegram(String.format("4104%02X", loadRaw).toCharArray());
+
+							Thread.sleep(100);
 							break;
 						
 						case OBD_SVC_VEH_INFO:
@@ -1247,10 +1273,6 @@ public class ElmProt
 						
 						case OBD_SVC_CTRL_MODE:
 							handleTelegram("4800C0000000".toCharArray());
-							break;
-
-						case OBD_SVC_NONE:
-							// just keep quiet until soneone requests something
 							break;
 						
 						default:

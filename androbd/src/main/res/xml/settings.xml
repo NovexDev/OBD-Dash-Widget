@@ -29,6 +29,12 @@
             android:title="@string/use_last_settings"
             />
 
+        <Preference
+            android:key="reset_preselections"
+            android:icon="@android:drawable/ic_menu_delete"
+            android:title="@string/reset_preselections"
+            />
+
         <CheckBoxPreference
             android:defaultValue="false"
             android:key="keep_screen_on"
@@ -158,6 +164,16 @@
                 android:title="@string/select_protocol"
                 />
 
+            <ListPreference
+                android:defaultValue="0"
+                android:dialogTitle="@string/select_ecu_addr"
+                android:entries="@array/empty"
+                android:entryValues="@array/empty"
+                android:key="LAST_ECU_ADDRESS"
+                android:summary="@string/ecu_address_description"
+                android:title="@string/select_ecu_addr"
+                />
+
             <com.fr3ts0n.ecu.gui.androbd.SearchableMultiSelectListPreference
                 android:defaultValue="@array/empty"
                 android:dialogTitle="@string/items_for_display"
@@ -217,6 +233,7 @@
         </PreferenceCategory>
     </PreferenceScreen>
 
+    <!-- CSV Export Options (Hidden from GUI per user request)
     <PreferenceScreen
         android:key="screen_csv_export_options"
         android:icon="@drawable/ic_save"
@@ -258,7 +275,9 @@
             />
 
     </PreferenceScreen>
+    -->
 
+    <!-- Development Options (Hidden from GUI per user request)
     <PreferenceScreen
         android:key="screen_development_options"
         android:icon="@drawable/ic_build"
@@ -327,6 +346,7 @@
         </PreferenceCategory>
 
     </PreferenceScreen>
+    -->
 
     <PreferenceScreen
         android:key="screen_app_info"

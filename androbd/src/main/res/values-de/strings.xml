@@ -185,4 +185,36 @@
     <string name="restart_required">Neustart zur Anwendung</string>
     <string name="no_obd_files_found">Keine OBD-Dateien gefunden</string>
     <string name="language_english"></string>
+
+    <!-- App Widget & Dashboard Strings -->
+    <string name="widget_name">OBD Anzeige-Widget</string>
+    <string name="widget_configure_title">OBD-Widget konfigurieren</string>
+    <string name="widget_no_data">--</string>
+    <string name="widget_pid_default">OBD PID</string>
+    <string name="notification_connected">Verbunden: %s</string>
+    <string name="notification_disconnected">Nicht verbunden</string>
+    <string name="notification_action_connect">Verbinden</string>
+    <string name="notification_action_disconnect">Trennen</string>
+    <string name="ecu_address_description">Bevorzugte ECU-Adresse (0 = Auswahldialog beim ersten Verbinden)</string>
+    <string name="ecu_auto_select">0 — Automatisch (Dialog beim Verbinden)</string>
+
+    <string name="widget_dashboard_subtitle">OBD Widget-Dashboard</string>
+    <string name="widget_active_title">Aktive Widgets auf dem Startbildschirm:</string>
+    <string name="widget_empty_text">Keine OBD-Widgets auf dem Startbildschirm gefunden.\n\nHalte deinen Android-Startbildschirm gedrückt, um ein OBD-Widget hinzuzufügen!</string>
+    <string name="widget_edit">Bearbeiten</string>
+    <string name="widget_display_style">Darstellungsart:</string>
+    <string name="widget_type_digital">Digital (Zahl)</string>
+    <string name="widget_type_gauge">Analoger Zeiger</string>
+    <string name="widget_type_chart_option">Verlauf (Diagramm mit Kurve)</string>
+    <string name="widget_range_and_redline">Anzeigebereich &amp; Roter Bereich:</string>
+    <string name="widget_chart_timeframe">Zeitraum für Verlauf (Kurve):</string>
+    <string name="widget_select_pid">OBD-PID auswählen:</string>
+    <string name="widget_search_pid_hint">PID suchen (z.B. RPM, Speed, Temp)...</string>
+    <string name="widget_save_config">Konfiguration speichern</string>
+    <string name="widget_select_pid_toast">Bitte wähle eine OBD-PID aus</string>
+    <string name="widget_status_ok">OK</string>
+    <string name="widget_status_disconnected">Nicht verbunden</string>
+    <string name="widget_chart_trend_label">Verlauf</string>
+    <string name="widget_details_gauge">%1$s | Bereich: %2$.0f - %3$.0f | Roter Bereich: %4$.0f</string>
+    <string name="widget_details_chart">%1$s | Zeitraum: %2$s</string>
 </resources>

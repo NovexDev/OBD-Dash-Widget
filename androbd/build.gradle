@@ -10,6 +10,7 @@ android {
     }
 
     defaultConfig {
+        applicationId "com.novexdev.obddashwidget"
         minSdk 23
         targetSdkVersion 37
         versionCode 30002

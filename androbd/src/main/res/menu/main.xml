@@ -1,18 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    Main menu for AndrOBD application
-    Provides access to key features in a logical grouping:
-    - Connection management (Connect/Disconnect)
-    - Data operations (Save/Load measurements)
-    - Application settings and customization
-    - OBD diagnostic services (submenu)
-    
-    Compatible with Android 4.1+ (API 16+) using standard Android menu components
-    for maximum compatibility and maintainability.
--->
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-    <!-- Connection Management Group -->
+
+    <!-- 1. Connection Management (Connect / Disconnect Icon) -->
     <item
         android:id="@+id/secure_connect_scan"
         android:icon="@drawable/action_connect"
@@ -26,45 +16,41 @@
         android:visible="false"
         app:showAsAction="always" />
 
-    <!-- Data Management Group -->
-    <item
-        android:id="@+id/save"
-        android:icon="@drawable/ic_save"
-        android:title="@string/save" />
-    <item
-        android:id="@+id/load"
-        android:icon="@drawable/ic_action_load"
-        android:title="@string/load" />
-
-    <!-- Display and View Options -->
-    <item
-        android:id="@+id/day_night_mode"
-        android:icon="@drawable/ic_daynight"
-        android:title="@string/day_night_mode" />
-
-    <!-- Configuration and Management -->
+    <!-- 2. Settings Icon -->
     <item
         android:id="@+id/settings"
-        android:icon="@android:drawable/ic_menu_manage"
-        android:title="@string/settings" />
+        android:icon="@drawable/ic_settings"
+        android:title="@string/settings"
+        app:showAsAction="always" />
+
+    <!-- Hidden Menu Items kept for ID compatibility -->
+    <item
+        android:id="@+id/save"
+        android:title="@string/save"
+        android:visible="false" />
+    <item
+        android:id="@+id/load"
+        android:title="@string/load"
+        android:visible="false" />
+    <item
+        android:id="@+id/day_night_mode"
+        android:title="@string/day_night_mode"
+        android:visible="false" />
     <item
         android:id="@+id/plugin_manager"
-        android:icon="@android:drawable/ic_menu_manage"
-        android:title="@string/plugin_manager" />
+        android:title="@string/plugin_manager"
+        android:visible="false" />
     <item
         android:id="@+id/reset_preselections"
-        android:icon="@android:drawable/ic_menu_delete"
-        android:title="@string/reset_preselections" />
-
-    <!-- OBD Diagnostic Services (Primary feature access) -->
+        android:title="@string/reset_preselections"
+        android:visible="false" />
     <item
         android:id="@+id/obd_services"
-        android:icon="@android:drawable/ic_menu_more"
-        android:enabled="false"
         android:title="@string/obd_services"
-        app:showAsAction="ifRoom">
+        android:visible="false">
         <menu>
-            <!-- submenu: obd_service.xml - Contains diagnostic functions -->
+            <!-- hidden submenu -->
         </menu>
     </item>
+
 </menu>

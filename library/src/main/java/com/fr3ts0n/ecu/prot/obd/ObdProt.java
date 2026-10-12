@@ -368,6 +368,11 @@ public class ObdProt extends ProtoHeader
     @SuppressWarnings("fallthrough")
     protected char[] getNewHeader(char[] buffer, int type, Object id)
     {
+        if (type == OBD_SVC_CLEAR_CODES || type == OBD_SVC_CTRL_MODE)
+        {
+            log.warning("Blocked creation of write/clear header for type: " + type);
+            return emptyBuffer;
+        }
         int[][] fldMap = getTelegramParams(type);
         char[] header = createEmptyBuffer(fldMap, '0');
         setParamValue(ID_OBD_SVC, fldMap, header, Integer.valueOf(type));
@@ -866,6 +871,13 @@ public class ObdProt extends ProtoHeader
      */
     public void setService(int obdService, boolean clearLists)
     {
+        if (obdService == OBD_SVC_CLEAR_CODES || obdService == OBD_SVC_CTRL_MODE)
+        {
+            log.warning("ECU write/clear command blocked for safety.");
+            this.service = OBD_SVC_NONE;
+            return;
+        }
+
         this.service = obdService;
         pidsWrapped = false;
         // if lists shall be cleared

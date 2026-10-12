@@ -28,10 +28,13 @@ import android.app.AlertDialog;
 import android.app.SearchManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.content.pm.PackageManager;
@@ -56,13 +59,25 @@ import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.window.OnBackInvokedCallback;
+
+import java.util.List;
+import java.util.Locale;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+
+import android.appwidget.AppWidgetManager;
+import android.content.ComponentName;
+import android.view.LayoutInflater;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.Button;
 
 import com.fr3ts0n.androbd.plugin.Plugin;
 import com.fr3ts0n.androbd.plugin.mgr.PluginManager;
@@ -70,6 +85,9 @@ import com.fr3ts0n.ecu.EcuCodeItem;
 import com.fr3ts0n.ecu.EcuDataItem;
 import com.fr3ts0n.ecu.EcuDataItems;
 import com.fr3ts0n.ecu.EcuDataPv;
+import com.fr3ts0n.ecu.gui.androbd.widget.ObdWidgetPrefs;
+import com.fr3ts0n.ecu.gui.androbd.widget.ObdWidgetProvider;
+import com.fr3ts0n.ecu.gui.androbd.widget.WidgetConfigureActivity;
 import com.fr3ts0n.ecu.prot.obd.ElmProt;
 import com.fr3ts0n.ecu.prot.obd.ObdProt;
 import com.fr3ts0n.pvs.ProcessVar;
@@ -436,7 +454,10 @@ public class MainActivity extends PluginManager
                     // handle ECU detection event
                     case MESSAGE_OBD_ECUS:
                         evt = (PropertyChangeEvent) msg.obj;
-                        selectEcu((Set<Integer>) evt.getNewValue());
+                        if (evt != null && evt.getNewValue() instanceof Set)
+                        {
+                            selectEcu((Set<Integer>) evt.getNewValue());
+                        }
                         break;
 
                     // handle negative result code from OBD protocol
@@ -638,7 +659,7 @@ public class MainActivity extends PluginManager
         {
             switch (CommService.medium) {
                 case DEMO:
-                    setMode(MODE.DEMO);
+                    startDemoService();
                     break;
 
                 case BLE:
@@ -710,6 +731,8 @@ public class MainActivity extends PluginManager
         }
    }
 
+    private boolean isReceiverRegistered = false;
+
     /**
      * Handler for application start event
      */
@@ -717,29 +740,26 @@ public class MainActivity extends PluginManager
     public void onStart()
     {
         super.onStart();
+        if (!isReceiverRegistered)
+        {
+            IntentFilter filter = new IntentFilter("com.novexdev.obddashwidget.ACTION_REQUEST_DISCONNECT");
+            ContextCompat.registerReceiver(this, serviceReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
+            isReceiverRegistered = true;
+        }
     }
 
-    /**
-     * Handle permission request results.
-     * Retries BT/BLE mode initialisation once the required permissions are granted.
-     */
     @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           @androidx.annotation.NonNull String[] permissions,
-                                           @androidx.annotation.NonNull int[] grantResults)
+    protected void onStop()
     {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_BT_PERMISSIONS) {
-            boolean allGranted = true;
-            for (int result : grantResults) {
-                if (result != PackageManager.PERMISSION_GRANTED) {
-                    allGranted = false;
-                    break;
-                }
+        super.onStop();
+        if (isReceiverRegistered)
+        {
+            try
+            {
+                unregisterReceiver(serviceReceiver);
             }
-            if (allGranted) {
-                initSelectedMode();
-            }
+            catch (Exception ignored) {}
+            isReceiverRegistered = false;
         }
     }
 
@@ -748,7 +768,11 @@ public class MainActivity extends PluginManager
         super.onPause();
 
         // stop data display update timer
-        updateTimer.cancel();
+        if (updateTimer != null)
+        {
+            updateTimer.cancel();
+            updateTimer = null;
+        }
         
         // Clean up resources to prevent memory leaks
         ModernUiUtils.optimizeListView(getListView());
@@ -760,21 +784,175 @@ public class MainActivity extends PluginManager
         SettingsActivity.applyLocale(this);
 
         // set up data display update timer
-        updateTimer = new Timer();
-        final TimerTask updateTask = new TimerTask()
+        if (updateTimer == null)
         {
-            @Override
-            public void run()
+            updateTimer = new Timer();
+            final TimerTask updateTask = new TimerTask()
             {
-                /* forward message to update the view */
-                Message msg = mHandler.obtainMessage(MainActivity.MESSAGE_UPDATE_VIEW);
-                mHandler.sendMessage(msg);
-            }
-        };
-        updateTimer.schedule(updateTask, 0, DISPLAY_UPDATE_TIME);
+                @Override
+                public void run()
+                {
+                    /* forward message to update the view */
+                    Message msg = mHandler.obtainMessage(MainActivity.MESSAGE_UPDATE_VIEW);
+                    mHandler.sendMessage(msg);
+                }
+            };
+            updateTimer.schedule(updateTask, 0, DISPLAY_UPDATE_TIME);
+        }
 
         super.onResume();
+        setupWidgetManagerList();
     }
+
+    private void setupWidgetManagerList()
+    {
+        ListView widgetListView = findViewById(R.id.widget_manager_list);
+        TextView emptyMessage = findViewById(R.id.widget_empty_message);
+
+        if (widgetListView == null) return;
+
+        AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this);
+        ComponentName componentName = new ComponentName(this, ObdWidgetProvider.class);
+        int[] appWidgetIds = appWidgetManager.getAppWidgetIds(componentName);
+
+        if (appWidgetIds == null || appWidgetIds.length == 0)
+        {
+            widgetListView.setVisibility(View.GONE);
+            if (emptyMessage != null) emptyMessage.setVisibility(View.VISIBLE);
+            return;
+        }
+
+        if (emptyMessage != null) emptyMessage.setVisibility(View.GONE);
+        widgetListView.setVisibility(View.VISIBLE);
+
+        final List<Integer> widgetIdList = new ArrayList<Integer>();
+        for (int id : appWidgetIds)
+        {
+            widgetIdList.add(id);
+        }
+
+        BaseAdapter adapter = new BaseAdapter()
+        {
+            @Override
+            public int getCount()
+            {
+                return widgetIdList.size();
+            }
+
+            @Override
+            public Object getItem(int position)
+            {
+                return widgetIdList.get(position);
+            }
+
+            @Override
+            public long getItemId(int position)
+            {
+                return position;
+            }
+
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent)
+            {
+                View view = convertView;
+                if (view == null)
+                {
+                    view = LayoutInflater.from(parent.getContext()).inflate(R.layout.widget_manager_item, parent, false);
+                }
+
+                int appWidgetId = widgetIdList.get(position);
+                String mnemonic = ObdWidgetPrefs.getWidgetPid(MainActivity.this, appWidgetId);
+                String type = ObdWidgetPrefs.getWidgetType(MainActivity.this, appWidgetId);
+
+                TextView titleView = view.findViewById(R.id.item_widget_title);
+                TextView detailsView = view.findViewById(R.id.item_widget_details);
+                Button btnEdit = view.findViewById(R.id.btn_edit_widget);
+
+                EcuDataItem item = EcuDataItems.byMnemonic.get(mnemonic);
+                String title = item != null && item.label != null && !item.label.isEmpty() ? item.label : mnemonic;
+
+                String typeName = ObdWidgetPrefs.TYPE_GAUGE.equals(type)
+                        ? getString(R.string.widget_type_gauge)
+                        : (ObdWidgetPrefs.TYPE_CHART.equals(type)
+                                ? getString(R.string.widget_type_chart_option)
+                                : getString(R.string.widget_type_digital));
+
+                if (ObdWidgetPrefs.TYPE_GAUGE.equals(type))
+                {
+                    float minVal = ObdWidgetPrefs.getWidgetMin(MainActivity.this, appWidgetId);
+                    float maxVal = ObdWidgetPrefs.getWidgetMax(MainActivity.this, appWidgetId);
+                    float redlineVal = ObdWidgetPrefs.getWidgetRedline(MainActivity.this, appWidgetId);
+                    detailsView.setText(getString(R.string.widget_details_gauge, typeName, minVal, maxVal, redlineVal));
+                }
+                else if (ObdWidgetPrefs.TYPE_CHART.equals(type))
+                {
+                    int timeWindow = ObdWidgetPrefs.getWidgetTimeWindow(MainActivity.this, appWidgetId);
+                    String windowStr = timeWindow >= 60 ? (timeWindow / 60) + "m" : timeWindow + "s";
+                    detailsView.setText(getString(R.string.widget_details_chart, typeName, windowStr));
+                }
+                else
+                {
+                    detailsView.setText(typeName);
+                }
+
+                titleView.setText(title);
+
+                View.OnClickListener editListener = v -> {
+                    Intent configIntent = new Intent(MainActivity.this, WidgetConfigureActivity.class);
+                    configIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+                    startActivityForResult(configIntent, REQUEST_SETTINGS);
+                };
+
+                btnEdit.setOnClickListener(editListener);
+                view.setOnClickListener(editListener);
+
+                return view;
+            }
+        };
+
+        widgetListView.setAdapter(adapter);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent)
+    {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (intent != null && "com.novexdev.obddashwidget.ACTION_REQUEST_CONNECT".equals(intent.getAction()))
+        {
+            handleRequestConnect();
+        }
+    }
+
+    private void handleRequestConnect()
+    {
+        if (CommService.medium == CommService.MEDIUM.DEMO || getMode() == MODE.DEMO)
+        {
+            startDemoService();
+        }
+        else
+        {
+            initSelectedMode();
+        }
+    }
+
+    private final BroadcastReceiver serviceReceiver = new BroadcastReceiver()
+    {
+        @Override
+        public void onReceive(Context context, Intent intent)
+        {
+            if (intent != null && "com.novexdev.obddashwidget.ACTION_REQUEST_DISCONNECT".equals(intent.getAction()))
+            {
+                stopDemoService();
+                if (mCommService != null)
+                {
+                    mCommService.stop();
+                }
+                CommService.elm.goToSleep();
+                onDisconnect();
+            }
+        }
+    };
 
     /*
      * (non-Javadoc)
@@ -1597,6 +1775,31 @@ public class MainActivity extends PluginManager
         }
     }
 
+    private int getSavedEcuAddress()
+    {
+        try
+        {
+            Object val = prefs.getAll().get("LAST_ECU_ADDRESS");
+            if (val instanceof Number)
+            {
+                int intVal = ((Number) val).intValue();
+                saveEcuAddress(intVal);
+                return intVal;
+            }
+            else if (val instanceof String)
+            {
+                return Integer.parseInt((String) val);
+            }
+        }
+        catch (Exception ignored) {}
+        return 0;
+    }
+
+    private void saveEcuAddress(int address)
+    {
+        prefs.edit().remove("LAST_ECU_ADDRESS").putString("LAST_ECU_ADDRESS", String.valueOf(address)).apply();
+    }
+
     /**
      * Prompt for selection of a single ECU from list of available ECUs
      *
@@ -1605,47 +1808,38 @@ public class MainActivity extends PluginManager
     private void selectEcu(final Set<Integer> ecuAdresses)
     {
         // if more than one ECUs available ...
-        if (ecuAdresses.size() > 1)
+        if (ecuAdresses != null && ecuAdresses.size() > 1)
         {
-            int preferredAddress = prefs.getInt(PRESELECT.LAST_ECU_ADDRESS.toString(), 0);
-            // check if last preferred address matches any of the reported addresses
-            if (istRestoreWanted(PRESELECT.LAST_ECU_ADDRESS)
-                    && ecuAdresses.contains(preferredAddress))
-            {
-                // set address
-                CommService.elm.setEcuAddress(preferredAddress);
-            } else
-            {
-                // NO match with preference -> allow selection
+            int preferredAddress = getSavedEcuAddress();
 
-                // .. allow selection of single ECU address ...
-                final Integer[] addrArray = ecuAdresses.toArray(new Integer[0]);
-                final CharSequence[] entries = new CharSequence[addrArray.length];
-                for (int i = 0; i < addrArray.length; i++)
-                {
-                    String desc = describeEcuAddress(addrArray[i]);
-                    entries[i] = desc.isEmpty()
-                            ? String.format("0x%X", addrArray[i])
-                            : String.format("0x%X — %s", addrArray[i], desc);
-                }
-                // show dialog ...
-                dlgBuilder
+            // If a valid preferred address is saved and matches reported ECUs, auto-select it
+            if (preferredAddress != 0 && ecuAdresses.contains(preferredAddress))
+            {
+                CommService.elm.setEcuAddress(preferredAddress);
+                return;
+            }
+
+            // First time connecting or preferredAddress == 0 -> show original selection dialog
+            final Integer[] addrArray = ecuAdresses.toArray(new Integer[0]);
+            final CharSequence[] entries = new CharSequence[addrArray.length];
+            for (int i = 0; i < addrArray.length; i++)
+            {
+                String desc = describeEcuAddress(addrArray[i]);
+                entries[i] = desc.isEmpty()
+                        ? String.format("0x%X", addrArray[i])
+                        : String.format("0x%X — %s", addrArray[i], desc);
+            }
+
+            runOnUiThread(() -> {
+                new AlertDialog.Builder(MainActivity.this)
                         .setTitle(R.string.select_ecu_addr)
-                        .setItems(entries, new DialogInterface.OnClickListener()
-                        {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which)
-                            {
-                                int address = addrArray[which];
-                                // set address
-                                CommService.elm.setEcuAddress(address);
-                                // set this as preference (preference change will trigger ELM command)
-                                prefs.edit().putInt(PRESELECT.LAST_ECU_ADDRESS.toString(), address)
-                                        .apply();
-                            }
+                        .setItems(entries, (dialog, which) -> {
+                            int address = addrArray[which];
+                            CommService.elm.setEcuAddress(address);
+                            saveEcuAddress(address);
                         })
                         .show();
-            }
+            });
         }
     }
 
@@ -2201,6 +2395,7 @@ public class MainActivity extends PluginManager
         {
             ElmProt.runDemo = false;
             Toast.makeText(this, getString(R.string.demo_stopped), Toast.LENGTH_SHORT).show();
+            com.fr3ts0n.ecu.gui.androbd.widget.ObdForegroundService.updateStatus(this, false, getString(R.string.notification_disconnected));
         }
     }
 
@@ -2209,21 +2404,24 @@ public class MainActivity extends PluginManager
      */
     private void startDemoService()
     {
-        if (getMode() != MODE.DEMO)
+        mode = MODE.DEMO;
+        setStatus(getString(R.string.demo));
+
+        boolean allowConnect = mBluetoothAdapter != null && mBluetoothAdapter.isEnabled();
+        setMenuItemVisible(R.id.secure_connect_scan, allowConnect);
+        setMenuItemVisible(R.id.disconnect, !allowConnect);
+
+        setMenuItemEnable(R.id.obd_services, true);
+        setObdService(ObdProt.OBD_SVC_DATA, null);
+
+        if (!ElmProt.runDemo)
         {
-            mode = MODE.DEMO;
-            setStatus(getString(R.string.demo));
             Toast.makeText(this, getString(R.string.demo_started), Toast.LENGTH_SHORT).show();
-
-            boolean allowConnect = mBluetoothAdapter != null && mBluetoothAdapter.isEnabled();
-            setMenuItemVisible(R.id.secure_connect_scan, allowConnect);
-            setMenuItemVisible(R.id.disconnect, !allowConnect);
-
-            setMenuItemEnable(R.id.obd_services, true);
             /* The Thread object for processing the demo mode loop */
             Thread demoThread = new Thread(CommService.elm);
             demoThread.start();
         }
+        com.fr3ts0n.ecu.gui.androbd.widget.ObdForegroundService.updateStatus(this, true, getString(R.string.demo));
     }
 
     /**
@@ -2366,11 +2564,9 @@ public class MainActivity extends PluginManager
         obdService = newObdService;
         ignoreNrcs = false;
 
-        // set list view
-        setContentView(mListView);
-        getListView().setOnItemLongClickListener(this);
-        getListView().setMultiChoiceModeListener(this);
-        getListView().setChoiceMode(ListView.CHOICE_MODE_SINGLE);
+        // Keep Widget Dashboard as active content view
+        setContentView(R.layout.startup_layout);
+        setupWidgetManagerList();
 
         // set title
         final ActionBar ab = getSupportActionBar();
@@ -2382,27 +2578,16 @@ public class MainActivity extends PluginManager
                 ab.setTitle(menuTitle);
             } else
             {
-                // no title specified, set to app name if no service set
-                if (newObdService == ElmProt.OBD_SVC_NONE)
-                {
-                    ab.setTitle(getString(R.string.app_name));
-                }
+                ab.setTitle(getString(R.string.app_name));
             }
         }
         // set protocol service
         CommService.elm.setService(newObdService, (getMode() != MODE.FILE && getMode() != MODE.OFFLINE));
-        // show / hide freeze frame selector */
-        Spinner ff_selector = findViewById(R.id.ff_selector);
-        ff_selector.setOnItemSelectedListener(ff_selected);
-        ff_selector.setAdapter(mDfcAdapter);
-        ff_selector.setVisibility(
-                newObdService == ObdProt.OBD_SVC_FREEZEFRAME ? View.VISIBLE : View.GONE);
+        
         // set corresponding list adapter
         switch (newObdService)
         {
             case ObdProt.OBD_SVC_DATA:
-                getListView().setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
-                // no break here
             case ObdProt.OBD_SVC_FREEZEFRAME:
                 currDataAdapter = mPidAdapter;
                 break;
@@ -2410,10 +2595,8 @@ public class MainActivity extends PluginManager
             case ObdProt.OBD_SVC_PENDINGCODES:
             case ObdProt.OBD_SVC_PERMACODES:
             case ObdProt.OBD_SVC_READ_CODES:
-                // NOT all DFC modes are supported by all vehicles, disable NRC handling for this request
                 ignoreNrcs = true;
                 currDataAdapter = mDfcAdapter;
-                Toast.makeText(this, getString(R.string.long_press_dfc_hint), Toast.LENGTH_LONG).show();
                 break;
 
             case ObdProt.OBD_SVC_CTRL_MODE:
@@ -2421,8 +2604,6 @@ public class MainActivity extends PluginManager
                 break;
 
             case ObdProt.OBD_SVC_NONE:
-                setContentView(R.layout.startup_layout);
-                // intentionally no break to initialize adapter
             case ObdProt.OBD_SVC_VEH_INFO:
                 currDataAdapter = mVidAdapter;
                 break;
@@ -2562,6 +2743,10 @@ public class MainActivity extends PluginManager
         setStatus(getString(R.string.title_connected_to, mConnectedDeviceName));
         // send RESET to Elm adapter
         CommService.elm.reset();
+        String details = mConnectedDeviceName != null && !mConnectedDeviceName.isEmpty()
+                ? mConnectedDeviceName
+                : "BT Device";
+        com.fr3ts0n.ecu.gui.androbd.widget.ObdForegroundService.updateStatus(this, true, details);
     }
 
     /**
@@ -2571,6 +2756,7 @@ public class MainActivity extends PluginManager
     {
         // handle further initialisations
         setMode(MODE.OFFLINE);
+        com.fr3ts0n.ecu.gui.androbd.widget.ObdForegroundService.updateStatus(this, false, getString(R.string.notification_disconnected));
     }
 
     /**
@@ -2623,74 +2809,17 @@ public class MainActivity extends PluginManager
      */
     private void clearObdFaultCodes()
     {
-        dlgBuilder
-                .setIcon(android.R.drawable.ic_dialog_info)
-                .setTitle(R.string.obd_clearcodes)
-                .setMessage(R.string.obd_clear_info)
-                .setPositiveButton(android.R.string.yes,
-                        new DialogInterface.OnClickListener()
-                        {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which)
-                            {
-                                // set service CLEAR_CODES to clear the codes
-                                CommService.elm.setService(ObdProt.OBD_SVC_CLEAR_CODES);
-                                // set service READ_CODES to re-read the codes
-                                CommService.elm.setService(ObdProt.OBD_SVC_READ_CODES);
-                            }
-                        })
-                .setNegativeButton(android.R.string.no, null)
-                .show();
+        log.warning("clearObdFaultCodes called but write commands are disabled.");
     }
 
-    /**
-     * confirm OBD test control
-     * confirmation dialog is shown and the operation is confirmed
-     */
     private void confirmObdTestControl(String testControlName, int service, int tid)
     {
-        dlgBuilder
-                .setIcon(android.R.drawable.ic_dialog_alert)
-                .setTitle(testControlName)
-                .setMessage(R.string.obd_test_confirm)
-                .setPositiveButton(android.R.string.yes,
-                        new DialogInterface.OnClickListener()
-                        {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which)
-                            {
-                                runObdTestControl(testControlName, service, tid);
-                            }
-                        })
-                .setNegativeButton(android.R.string.no, null)
-                .show();
+        log.warning("confirmObdTestControl called but write commands are disabled.");
     }
 
-    /**
-     * perform OBD test control
-     * confirmation dialog is shown and the operation is confirmed
-     */
     private void runObdTestControl(String testControlName, int service, int tid)
     {
-        // start desired test TID
-        char[] emptyBuffer = {};
-        CommService.elm.writeTelegram(emptyBuffer, service, tid);
-
-        // Show test progress message
-        dlgBuilder
-                .setIcon(android.R.drawable.ic_dialog_info)
-                .setTitle(testControlName)
-                .setMessage(R.string.obd_test_progress)
-                .setPositiveButton(android.R.string.ok,
-                        new DialogInterface.OnClickListener()
-                        {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which)
-                            {
-                            }
-                        })
-                .setNegativeButton(null, null)
-                .show();
+        log.warning("runObdTestControl called but write commands are disabled.");
     }
 
     /**

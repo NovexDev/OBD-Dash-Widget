@@ -38,6 +38,10 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import androidx.preference.EditTextPreference;
 import androidx.preference.ListPreference;
 import androidx.preference.MultiSelectListPreference;
@@ -100,6 +104,31 @@ public class SettingsActivity extends AppCompatActivity
 			activity.createConfigurationContext(config);
 		}
 		resources.updateConfiguration(config, resources.getDisplayMetrics());
+
+		// Re-initialize Messages resource bundle for active Locale
+		com.fr3ts0n.ecu.prot.obd.Messages.init("com.fr3ts0n.ecu.prot.obd.res.messages");
+
+		// Re-translate all loaded PID items in memory
+		if (com.fr3ts0n.ecu.EcuDataItems.byMnemonic != null && !com.fr3ts0n.ecu.EcuDataItems.byMnemonic.isEmpty())
+		{
+			synchronized (com.fr3ts0n.ecu.EcuDataItems.byMnemonic)
+			{
+				for (com.fr3ts0n.ecu.EcuDataItem item : com.fr3ts0n.ecu.EcuDataItems.byMnemonic.values())
+				{
+					if (item != null && item.pv != null)
+					{
+						Object mnemonicObj = item.pv.get("MNEMONIC");
+						if (mnemonicObj != null)
+						{
+							String mnemonic = mnemonicObj.toString();
+							String translatedLabel = com.fr3ts0n.ecu.prot.obd.Messages.getString(mnemonic, item.label);
+							item.label = translatedLabel;
+							item.pv.put(com.fr3ts0n.ecu.EcuDataPv.FID_DESCRIPT, translatedLabel);
+						}
+					}
+				}
+			}
+		}
 	}
 
 	@Override
@@ -194,6 +223,18 @@ public class SettingsActivity extends AppCompatActivity
 		{
 			prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
 
+			// Migrate legacy Integer LAST_ECU_ADDRESS to String before inflating XML to prevent ClassCastException
+			try
+			{
+				Object raw = prefs.getAll().get("LAST_ECU_ADDRESS");
+				if (raw instanceof Integer)
+				{
+					int val = (Integer) raw;
+					prefs.edit().remove("LAST_ECU_ADDRESS").putString("LAST_ECU_ADDRESS", String.valueOf(val)).commit();
+				}
+			}
+			catch (Exception ignored) {}
+
 			setPreferencesFromResource(R.xml.settings, rootKey);
 
 			for (String key : extKeys)
@@ -205,6 +246,8 @@ public class SettingsActivity extends AppCompatActivity
 			setupCommMediaSelection();
 			// set up protocol selection
 			setupProtoSelection();
+			// set up ECU address selection
+			setupEcuSelection();
 			// set up ELM command selection
 			setupElmCmdSelection();
 			// set up ELM adaptive timing mode selection
@@ -215,6 +258,7 @@ public class SettingsActivity extends AppCompatActivity
 			updateNetworkSelections();
 			setPrefClickListener(KEY_BITCOIN);
 			setPrefClickListener(KEY_OPEN_LOG_DIR);
+			setPrefClickListener("reset_preselections");
 		}
 
 		/**
@@ -346,6 +390,89 @@ public class SettingsActivity extends AppCompatActivity
 			pref.setDefaultValue(titles[0]);
 			// show current selection
 			pref.setSummary(pref.getEntry());
+		}
+
+		/**
+		 * set up ECU address selection
+		 */
+		void setupEcuSelection()
+		{
+			ListPreference pref = (ListPreference) findPreference("LAST_ECU_ADDRESS");
+			if (pref == null) return;
+
+			int currentAddress = 0;
+			try
+			{
+				Object val = prefs.getAll().get("LAST_ECU_ADDRESS");
+				if (val instanceof Number)
+				{
+					currentAddress = ((Number) val).intValue();
+				}
+				else if (val instanceof String)
+				{
+					currentAddress = Integer.parseInt((String) val);
+				}
+			}
+			catch (Exception ignored) {}
+
+			List<CharSequence> entriesList = new ArrayList<>(Arrays.asList(
+				"0 — Automatisch (Dialog beim Verbinden)",
+				"0x10 — ECM (KW2000/ISO9141)",
+				"0x12 — TCM (KW2000/ISO9141)",
+				"0x7E8 — ECM (11-bit CAN)",
+				"0x7E9 — TCM (11-bit CAN)",
+				"0x7EA — SCM (11-bit CAN)",
+				"0x18DAF110 — ECM (29-bit CAN)",
+				"0x18DAF118 — TCM (29-bit CAN)"
+			));
+			List<CharSequence> valuesList = new ArrayList<>(Arrays.asList(
+				"0",
+				"16",
+				"18",
+				"2024",
+				"2025",
+				"2026",
+				"417001744",
+				"417001752"
+			));
+
+			String strAddr = String.valueOf(currentAddress);
+			if (currentAddress != 0 && !valuesList.contains(strAddr))
+			{
+				entriesList.add(String.format("0x%X", currentAddress));
+				valuesList.add(strAddr);
+			}
+
+			CharSequence[] entriesArray = entriesList.toArray(new CharSequence[0]);
+			CharSequence[] valuesArray = valuesList.toArray(new CharSequence[0]);
+
+			pref.setEntries(entriesArray);
+			pref.setEntryValues(valuesArray);
+			pref.setValue(strAddr);
+
+			if (pref.getEntry() != null)
+			{
+				pref.setSummary(pref.getEntry());
+			}
+			else
+			{
+				pref.setSummary("0 — Automatisch (Dialog anzeigen)");
+			}
+
+			pref.setOnPreferenceChangeListener((preference, newValue) -> {
+				try
+				{
+					int val = Integer.parseInt(newValue.toString());
+					prefs.edit().remove("LAST_ECU_ADDRESS").putString("LAST_ECU_ADDRESS", String.valueOf(val)).apply();
+					int index = pref.findIndexOfValue(newValue.toString());
+					if (index >= 0 && index < entriesArray.length)
+					{
+						pref.setSummary(entriesArray[index]);
+					}
+				}
+				catch (Exception ignored) {}
+				return true;
+			});
 		}
 
 		/**
@@ -554,7 +681,17 @@ public class SettingsActivity extends AppCompatActivity
 			Intent intent = preference.getIntent();
 			try
 			{
-				if(KEY_BITCOIN.equals(preference.getKey()))
+				if ("reset_preselections".equals(preference.getKey()))
+				{
+					for (String key : new String[]{"LAST_DEV_ADDRESS", "LAST_ECU_ADDRESS", "LAST_SERVICE", "LAST_ITEMS", "LAST_VIEW_MODE", "USE_LAST_SETTINGS"})
+					{
+						prefs.edit().remove(key).apply();
+					}
+					Toast.makeText(requireContext(), getString(R.string.reset_preselections), Toast.LENGTH_SHORT).show();
+					setupEcuSelection();
+					return true;
+				}
+				else if(KEY_BITCOIN.equals(preference.getKey()))
 				{
 					// special handling for bitcoin VIEW intent
 					startActivity(intent);

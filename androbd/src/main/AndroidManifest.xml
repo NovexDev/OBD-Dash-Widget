@@ -95,6 +95,38 @@
             android:name=".PidCustomization"
             android:label="@string/customize_display"
             android:configChanges="touchscreen|orientation|screenSize" />
+
+        <!-- OBD App Widget Configuration Activity -->
+        <activity
+            android:name=".widget.WidgetConfigureActivity"
+            android:exported="true"
+            android:label="@string/widget_configure_title"
+            android:theme="@style/AppTheme">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <!-- OBD App Widget Provider -->
+        <receiver
+            android:name=".widget.ObdWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.novexdev.obddashwidget.ACTION_WIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/obd_widget_info" />
+        </receiver>
+
+        <!-- OBD Foreground Service for Live Widget Updates -->
+        <service
+            android:name=".widget.ObdForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!--  AndrOBD -->
-    <string name="app_name" translatable="false">AndrOBD</string>
-    <string name="copyright_fr3ts0n" translatable="false">© 2015-2026 fr3ts0n</string>
+    <!--  OBD Dash Widget -->
+    <string name="app_name" translatable="false">OBD Dash Widget</string>
+    <string name="copyright_fr3ts0n" translatable="false">© 2015-2026 fr3ts0n / NovexDev</string>
     <string name="translation_credits">Translation by fr3ts0n</string>
-    <string name="app_description">Android OBD vehicle diagnostics app for ELM327 Bluetooth adapter</string>
+    <string name="app_description">OBD Dash Widget for Android - Live gauge widgets for your homescreen</string>
     <string name="copied_to_clipboard">Copied to clipboard</string>
     <string name="title_connecting">Connecting…</string>
     <string name="title_connected_to">Connected %s</string>
@@ -375,4 +375,36 @@ period of time while the ECU recalibrates itself.
         <item>fr</item>
         <item>es</item>
     </string-array>
+
+    <!-- App Widget & Dashboard Strings -->
+    <string name="widget_name">OBD Gauge Widget</string>
+    <string name="widget_configure_title">Configure OBD Widget</string>
+    <string name="widget_no_data">--</string>
+    <string name="widget_pid_default">OBD PID</string>
+    <string name="notification_connected">Connected: %s</string>
+    <string name="notification_disconnected">Disconnected</string>
+    <string name="notification_action_connect">Connect</string>
+    <string name="notification_action_disconnect">Disconnect</string>
+    <string name="ecu_address_description">Preferred ECU Address (0 = Selection dialog on first connect)</string>
+    <string name="ecu_auto_select">0 — Automatic (Selection dialog on connect)</string>
+
+    <string name="widget_dashboard_subtitle">OBD Widget Dashboard</string>
+    <string name="widget_active_title">Active widgets on home screen:</string>
+    <string name="widget_empty_text">No OBD widgets found on home screen.\n\nPress and hold your home screen to add an OBD widget!</string>
+    <string name="widget_edit">Edit</string>
+    <string name="widget_display_style">Display Type:</string>
+    <string name="widget_type_digital">Digital (Number)</string>
+    <string name="widget_type_gauge">Analog Gauge</string>
+    <string name="widget_type_chart_option">Trend Chart (Curve)</string>
+    <string name="widget_range_and_redline">Display Range &amp; Redline Area:</string>
+    <string name="widget_chart_timeframe">Timeframe for Trend Chart:</string>
+    <string name="widget_select_pid">Select OBD PID:</string>
+    <string name="widget_search_pid_hint">Search PID (e.g. RPM, Speed, Temp)...</string>
+    <string name="widget_save_config">Save Configuration</string>
+    <string name="widget_select_pid_toast">Please select an OBD PID</string>
+    <string name="widget_status_ok">OK</string>
+    <string name="widget_status_disconnected">Disconnected</string>
+    <string name="widget_chart_trend_label">Trend</string>
+    <string name="widget_details_gauge">%1$s | Range: %2$.0f - %3$.0f | Redline: %4$.0f</string>
+    <string name="widget_details_chart">%1$s | Timeframe: %2$s</string>
 </resources>
